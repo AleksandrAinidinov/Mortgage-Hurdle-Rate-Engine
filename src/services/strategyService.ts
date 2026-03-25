@@ -23,7 +23,9 @@ export function analyzeStrategy(input: AnalyzeRequest): AnalyzeResponse {
   // How much more the user pays per month staying at the current rate
   // vs. switching to the best offer rate.
   const monthlyDiff =
-    ((currentRate - bestOfferRate) / 100) * remainingBalance / 12;
+    remainingBalance > 0
+      ? ((currentRate - bestOfferRate) / 100) * remainingBalance / 12
+      : 0;
 
   // ── 2. Cost of Waiting ──────────────────────────────────────────────
   // Total extra interest the user pays by waiting `waitMonths` before acting.
@@ -44,30 +46,37 @@ export function analyzeStrategy(input: AnalyzeRequest): AnalyzeResponse {
 
   // ── 6. Break-Even (Hurdle) Rate ─────────────────────────────────────
   // The rate the market would need to reach for waiting to make financial
-  // sense. If the market rate drops below this, waiting would have been
-  // worth it; otherwise, the user should act now.
-  const breakEvenRate = bestOfferRate - (delayCost / remainingBalance);
+  // sense.
+  const breakEvenRate =
+    remainingBalance > 0
+      ? bestOfferRate - (delayCost / remainingBalance)
+      : bestOfferRate;
 
   // ── 7. Adjusted Benefit ─────────────────────────────────────────────
   // After accounting for the cost of waiting, is switching still worth it?
   const adjustedBenefit = netBenefitNow - totalCostOfWaiting;
 
   // ── 8. Recommendation Logic ─────────────────────────────────────────
-  // Pure money-based decision — no arbitrary rate thresholds.
   const recommendation: "LOCK_NOW" | "WAIT" =
     adjustedBenefit > 0 ? "LOCK_NOW" : "WAIT";
 
   // ── 9. Human-Readable Summary ───────────────────────────────────────
-  const fmt = (v: number) =>
-    Math.abs(v).toLocaleString("en-CA", { style: "currency", currency: "CAD" });
+  const safeFmt = (v: number) => {
+    if (isNaN(v)) return "$0.00";
+    return Math.abs(v).toLocaleString("en-CA", {
+      style: "currency",
+      currency: "CAD",
+    });
+  };
+
   const action = recommendation === "LOCK_NOW" ? "LOCK NOW" : "WAIT";
 
   const summary =
-    `You are ${monthlyDiff >= 0 ? "overpaying" : "saving"} ~${fmt(monthlyDiff)}/month ` +
+    `You are ${monthlyDiff >= 0 ? "overpaying" : "saving"} ~${safeFmt(monthlyDiff)}/month ` +
     `at your current rate. ` +
-    `Switching now saves ${fmt(netBenefitNow)} over the new term, ` +
-    `but waiting ${waitMonths} months costs ${fmt(totalCostOfWaiting)}. ` +
-    `Adjusted benefit: ${fmt(adjustedBenefit)}. ` +
+    `Switching now saves ${safeFmt(netBenefitNow)} over the new term, ` +
+    `but waiting ${waitMonths} months costs ${safeFmt(totalCostOfWaiting)}. ` +
+    `Adjusted benefit: ${safeFmt(adjustedBenefit)}. ` +
     `Recommendation: ${action}.`;
 
   // ── Return ──────────────────────────────────────────────────────────

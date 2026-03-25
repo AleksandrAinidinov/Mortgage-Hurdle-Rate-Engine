@@ -76,6 +76,8 @@ export const analyzeFull = async (req: Request, res: Response): Promise<void> =>
       province: input.province,
       homeValue: input.homeValue,
       mortgagePrincipal: input.remainingBalance,
+      currentRate: input.currentRate,
+      currentLender: input.lender,
       hasDefaultInsurance: input.hasDefaultInsurance ?? false,
       isOwnerOccupied: input.isOwnerOccupied ?? true,
     });

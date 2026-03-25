@@ -55,6 +55,26 @@ const PENALTY_URL =
 export async function fetchPenaltyCost(
   input: PenaltyRequest,
 ): Promise<PenaltyResult> {
+  const parseNumeric = (v: any): number => {
+    if (typeof v === "number") return v;
+    if (!v) return 0;
+    // Extract digits and dots, stripping common symbols
+    const match = String(v).replace(/,/g, "").match(/(\d+\.?\d*)/);
+    return match ? Number(match[0]) : 0;
+  };
+
+  // Ensure maturity date is YYYY-MM-DD (Perch network logs showed this format)
+  let maturityDate = input.maturityDate;
+  if (maturityDate.includes("/")) {
+    const parts = maturityDate.split("/");
+    if (parts.length === 3) {
+      const m = parts[0] || "01";
+      const d = parts[1] || "01";
+      const y = parts[2] || "2000";
+      maturityDate = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+  }
+
   const payload = {
     // Existing mortgage fields (mortgage1)
     mortgage1Lender: input.lender,
@@ -62,13 +82,18 @@ export async function fetchPenaltyCost(
     mortgage1Rate: input.mortgageRate,
     mortgage1RateType: input.mortgageRateType,
     mortgage1Term: input.originalTermYears,
-    mortgage1MaturityDate: input.maturityDate,
-    mortgage1Frequency: FREQUENCY_MAP[input.paymentFrequency] ?? "Monthly",
+    mortgage1MaturityDate: maturityDate,
+    mortgage1PmtFreq: FREQUENCY_MAP[input.paymentFrequency] ?? "Monthly",
     mortgage1Payment: input.mortgagePayment,
+
+    // Dummy second mortgage
+    mortgage2Principal: 0,
+    mortgage2Rate: 10,
 
     // New mortgage fields (mortgage3)
     mortgage3Rate: input.newMortgageRate,
     mortgage3RateType: input.newMortgageRateType,
+    mortgagePayment: input.mortgagePayment, // Often sent as a top-level too
   };
 
   const res = await fetch(PENALTY_URL, {
@@ -76,6 +101,8 @@ export async function fetchPenaltyCost(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     },
     body: JSON.stringify(payload),
   });
@@ -95,10 +122,10 @@ export async function fetchPenaltyCost(
   }
 
   return {
-    totalPenalty: Math.abs(Number(data["Total_Penalty"] ?? 0)),
-    oldInterest: Number(data["Old_Interest"] ?? 0),
-    newInterest: Number(data["New_Interest"] ?? 0),
-    difference: Number(data["Difference"] ?? 0),
-    totalRaw: Number(data["Total_raw"] ?? 0),
+    totalPenalty: Math.abs(parseNumeric(data["Total_Penalty"])),
+    oldInterest: parseNumeric(data["Old_Interest"]),
+    newInterest: parseNumeric(data["New_Interest"]),
+    difference: parseNumeric(data["Difference"]),
+    totalRaw: parseNumeric(data["Total_raw"]),
   };
 }
