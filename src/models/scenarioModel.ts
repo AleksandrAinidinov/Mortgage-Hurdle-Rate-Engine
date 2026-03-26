@@ -61,10 +61,11 @@ export interface AnalyzeResponse {
 // ── Full (Perch-Integrated) Request ────────────────────────────────────
 
 export interface FullAnalyzeRequest {
-  // ── Core Strategy Inputs (Minified) ────────────────────────────────
+  // ── Core Strategic Inputs (7 Fields for Precision) ─────────────────
   currentRate: number;
   remainingBalance: number;
-  remainingTermMonths: number;
+  maturityDate: string; // MM/DD/YYYY
+  homeValue: number;
   waitMonths: number;
   lender: string;
   mortgageRateType: "Fixed" | "Variable";

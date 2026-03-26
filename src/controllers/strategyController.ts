@@ -17,8 +17,8 @@ import { fetchPenaltyCost } from "../services/penaltyService";
 export const analyzeFull = async (req: Request, res: Response): Promise<void> => {
   const body = req.body as Record<string, unknown>;
 
-  // 1. Minified Validation (6 Core Fields)
-  const errors = validateMinifiedRequest(body);
+  // 1. Precision Validation (7 Core Fields)
+  const errors = validatePrecisionRequest(body);
   if (errors.length > 0) {
     res.status(400).json({ error: "Validation failed", details: errors });
     return;
@@ -27,7 +27,8 @@ export const analyzeFull = async (req: Request, res: Response): Promise<void> =>
   const input: FullAnalyzeRequest = {
     currentRate: Number(body.currentRate),
     remainingBalance: Number(body.remainingBalance),
-    remainingTermMonths: Number(body.remainingTermMonths),
+    maturityDate: String(body.maturityDate),
+    homeValue: Number(body.homeValue),
     waitMonths: Number(body.waitMonths),
     lender: String(body.lender),
     mortgageRateType: body.mortgageRateType as "Fixed" | "Variable",
@@ -35,22 +36,21 @@ export const analyzeFull = async (req: Request, res: Response): Promise<void> =>
 
   let currentStep = "initializing";
   try {
-    // 2. Smart Defaults Logic
-    const homeValue = input.remainingBalance / 0.8; // Assume 80% LTV
-    const maturityDate = calculateMaturityDate(input.remainingTermMonths);
+    // 2. Derive Internal Metrics
+    const remainingTermMonths = calculateMonthsRemaining(input.maturityDate);
     const estimatedPmt = estimatePayment(input.remainingBalance, input.currentRate);
 
     // ── Step A: Fetch best rate from Pathfinder ───────────────────────
     currentStep = "Pathfinder API (Rates)";
     const pathfinderResult = await fetchPathfinderOffers({
-      city: "Toronto",      // DEFAULT
-      province: "ON",       // DEFAULT
-      homeValue: homeValue,
+      city: "Toronto",
+      province: "ON",
+      homeValue: input.homeValue,
       mortgagePrincipal: input.remainingBalance,
       currentRate: input.currentRate,
       currentLender: input.lender,
-      hasDefaultInsurance: false, // DEFAULT
-      isOwnerOccupied: true,      // DEFAULT
+      hasDefaultInsurance: false,
+      isOwnerOccupied: true,
     });
 
     const { bestOffer } = pathfinderResult;
@@ -62,20 +62,20 @@ export const analyzeFull = async (req: Request, res: Response): Promise<void> =>
       mortgagePrincipal: input.remainingBalance,
       mortgageRate: input.currentRate,
       mortgageRateType: input.mortgageRateType,
-      originalTermYears: 5,        // DEFAULT
-      maturityDate: maturityDate,
-      paymentFrequency: "Monthly", // DEFAULT
+      originalTermYears: 5,        // DEFAULTS
+      maturityDate: input.maturityDate,
+      paymentFrequency: "Monthly", // DEFAULTS
       mortgagePayment: estimatedPmt,
       newMortgageRate: bestOffer.netRate,
       newMortgageRateType: "Fixed",
     });
 
-    // ── Step C: Run the Decision Engine ───────────────────────────────
+    // ── Step C: Run the Decision Engine (Hybrid Math) ─────────────────
     currentStep = "Decision Engine";
     const engineInput: AnalyzeRequest = {
       currentRate: input.currentRate,
       remainingBalance: input.remainingBalance,
-      remainingTermMonths: input.remainingTermMonths,
+      remainingTermMonths: remainingTermMonths,
       bestOfferRate: bestOffer.netRate,
       offerTermYears: bestOffer.termYears,
       penaltyCost: penaltyResult.totalPenalty,
@@ -87,26 +87,26 @@ export const analyzeFull = async (req: Request, res: Response): Promise<void> =>
     const analysis = analyzeStrategy(engineInput);
 
     // 3. Perfected Narrative Response
-    const fullResponse: FullAnalyzeResponse = {
-      ...analysis,
-      pathfinder: {
-        bestOffer: {
-          lender: bestOffer.lender,
-          netRate: bestOffer.netRate,
-          termYears: bestOffer.termYears,
-        },
-        totalOffersFound: pathfinderResult.offers.length,
-      },
-      penalty: {
-        totalPenalty: penaltyResult.totalPenalty,
-        oldInterest: penaltyResult.oldInterest,
-        newInterest: penaltyResult.newInterest,
-        difference: penaltyResult.difference,
-        totalRaw: penaltyResult.totalRaw,
-      },
-    };
+    // const fullResponse: FullAnalyzeResponse = {
+    //   ...analysis,
+    // pathfinder: {
+    //   bestOffer: {
+    //     lender: bestOffer.lender,
+    //     netRate: bestOffer.netRate,
+    //     termYears: bestOffer.termYears,
+    //   },
+    //   totalOffersFound: pathfinderResult.offers.length,
+    // },
+    // penalty: {
+    //   totalPenalty: penaltyResult.totalPenalty,
+    //   oldInterest: penaltyResult.oldInterest,
+    //   newInterest: penaltyResult.newInterest,
+    //   difference: penaltyResult.difference,
+    //   totalRaw: penaltyResult.totalRaw,
+    // },
+    //};
 
-    res.json(fullResponse);
+    res.json(analysis);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     res.status(502).json({ error: `Failed during ${currentStep}`, details: message });
@@ -114,16 +114,17 @@ export const analyzeFull = async (req: Request, res: Response): Promise<void> =>
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// Smart Default Utilities
+// Precision Utilities
 // ═══════════════════════════════════════════════════════════════════════
 
-function calculateMaturityDate(monthsRemaining: number): string {
-  const date = new Date();
-  date.setMonth(date.getMonth() + monthsRemaining);
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  const y = date.getFullYear();
-  return `${m}/${d}/${y}`;
+function calculateMonthsRemaining(maturityDateStr: string): number {
+  const maturity = new Date(maturityDateStr);
+  const now = new Date();
+  if (isNaN(maturity.getTime())) return 0;
+
+  const diffYears = maturity.getFullYear() - now.getFullYear();
+  const diffMonths = diffYears * 12 + (maturity.getMonth() - now.getMonth());
+  return Math.max(0, diffMonths);
 }
 
 function estimatePayment(principal: number, rate: number): number {
@@ -133,9 +134,9 @@ function estimatePayment(principal: number, rate: number): number {
   return (principal * r) / (1 - Math.pow(1 + r, -n));
 }
 
-function validateMinifiedRequest(body: Record<string, unknown>): string[] {
+function validatePrecisionRequest(body: Record<string, unknown>): string[] {
   const errors: string[] = [];
-  const required = ["currentRate", "remainingBalance", "remainingTermMonths", "waitMonths", "lender", "mortgageRateType"];
+  const required = ["currentRate", "remainingBalance", "maturityDate", "homeValue", "waitMonths", "lender", "mortgageRateType"];
 
   for (const field of required) {
     if (body[field] === undefined || body[field] === null) {
@@ -146,7 +147,8 @@ function validateMinifiedRequest(body: Record<string, unknown>): string[] {
   if (errors.length === 0) {
     if (typeof body.currentRate !== "number") errors.push("currentRate must be a number.");
     if (typeof body.remainingBalance !== "number") errors.push("remainingBalance must be a number.");
-    if (typeof body.remainingTermMonths !== "number") errors.push("remainingTermMonths must be a number.");
+    if (typeof body.homeValue !== "number") errors.push("homeValue must be a number.");
+    if (typeof body.maturityDate !== "string") errors.push("maturityDate must be a string (MM/DD/YYYY).");
     if (body.mortgageRateType !== "Fixed" && body.mortgageRateType !== "Variable") {
       errors.push("mortgageRateType must be 'Fixed' or 'Variable'.");
     }

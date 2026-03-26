@@ -22,9 +22,14 @@ export function analyzeStrategy(input: AnalyzeRequest): AnalyzeResponse {
   } = input;
 
   // ── 1. Monthly Interest Savings ─────────────────────────────────────
-  // We derive monthly savings directly from Perch's calculated total interest difference.
-  const totalSavings = perchSavings ?? 0;
-  const monthlyDiff = totalSavings / (offerTermYears * 12);
+  // The "Bleed" (Instant Impact): Calculated via simple interest difference
+  // for a sharper behavioral pitch.
+  const simpleMonthlyDiff = (remainingBalance * (currentRate - bestOfferRate)) / 100 / 12;
+
+  // The "Term Total": We prefer Perch's amortization-based total savings if available.
+  const totalSavings = perchSavings ?? simpleMonthlyDiff * (offerTermYears * 12);
+
+  const monthlyDiff = simpleMonthlyDiff; // Use simple math for the "Daily Loss" display
 
   // ── 2. Cost of Waiting (The "Bleed") ───────────────────────────────
   const totalCostOfWaiting = monthlyDiff * waitMonths;
