@@ -196,9 +196,9 @@ function App() {
                   </div>
                 </div>
 
-                <div style={{ fontSize: "14px", color: "#444", whiteSpace: "pre-line", borderTop: "1px solid var(--perch-border)", paddingTop: "20px" }}>
+                {/* <div style={{ fontSize: "14px", color: "#444", whiteSpace: "pre-line", borderTop: "1px solid var(--perch-border)", paddingTop: "20px" }}>
                   {result.summary}
-                </div>
+                </div> */}
               </div>
             ) : (
               <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", minHeight: "300px", background: "#fafafa" }}>
