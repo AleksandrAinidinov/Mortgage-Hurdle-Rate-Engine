@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { validatePrecisionRequest } from "../utils/validation";
 import { calculateMonthsRemaining, estimatePayment } from "../utils/parsers";
 import {
@@ -16,13 +16,16 @@ import { fetchPenaltyCost } from "../services/penaltyService";
  * The "Smarter Wrapper": Takes 6 strategic fields and uses internal
  * "Smart Defaults" to satisfy Perch's data-hungry APIs.
  */
-export const analyzeFull = async (req: Request, res: Response): Promise<void> => {
+export const analyzeFull = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const body = req.body as Record<string, unknown>;
 
   // 1. Precision Validation (7 Core Fields)
   const errors = validatePrecisionRequest(body);
   if (errors.length > 0) {
-    res.status(400).json({ error: "Validation failed", details: errors });
+    const error = new Error("Validation failed") as any;
+    error.statusCode = 400;
+    error.details = errors;
+    next(error);
     return;
   }
 
@@ -110,8 +113,9 @@ export const analyzeFull = async (req: Request, res: Response): Promise<void> =>
 
     res.json(analysis);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(502).json({ error: `Failed during ${currentStep}`, details: message });
+    const error = new Error(`Failed during ${currentStep}: ${err instanceof Error ? err.message : "Unknown error"}`) as any;
+    error.statusCode = 502;
+    next(error);
   }
 };
 

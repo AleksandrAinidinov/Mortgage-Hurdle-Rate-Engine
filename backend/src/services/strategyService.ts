@@ -1,11 +1,11 @@
 import { AnalyzeRequest, AnalyzeResponse } from "../models/scenarioModel";
 
 /**
- * Core decision engine.
+ * Main decision+calculation engine.
  *
- * Takes a user's current mortgage context, the best available offer from
+ * Takes user's current mortgage context, the best available offer from
  * Perch Pathfinder, and the penalty cost from Perch Penalty Calculator,
- * then computes whether the user should lock in the new rate now or wait.
+ * then computes how much the user is losing daily to help them make a decision: lock in the new rate now or wait.
  *
  * All calculations use simplified interest (no amortization schedules).
  */
