@@ -3,9 +3,8 @@ import { validatePrecisionRequest } from "../utils/validation";
 import { calculateMonthsRemaining, estimatePayment } from "../utils/parsers";
 import {
   FullAnalyzeRequest,
-  FullAnalyzeResponse,
   AnalyzeRequest,
-} from "../models/scenarioModel";
+} from "../models/scenarioModels";
 import { analyzeStrategy } from "../services/strategyService";
 import { fetchPathfinderOffers } from "../services/pathfinderService";
 import { fetchPenaltyCost } from "../services/penaltyService";
@@ -14,12 +13,13 @@ import { fetchPenaltyCost } from "../services/penaltyService";
  * POST /api/v1/strategy/analyze-full
  *
  * The "Smarter Wrapper": Takes 6 strategic fields and uses internal
- * "Smart Defaults" to satisfy Perch's data-hungry APIs.
+ * "Smart Defaults" to satisfy Perch's APIs and reduce the number of inputs needed from the user
+ * for demo purposes.
  */
 export const analyzeFull = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const body = req.body as Record<string, unknown>;
 
-  // 1. Precision Validation (7 Core Fields)
+  // Core Fields Validation
   const errors = validatePrecisionRequest(body);
   if (errors.length > 0) {
     const error = new Error("Validation failed") as any;
@@ -41,11 +41,11 @@ export const analyzeFull = async (req: Request, res: Response, next: NextFunctio
 
   let currentStep = "initializing";
   try {
-    // 2. Derive Internal Metrics
+    // Calculate internal metrics
     const remainingTermMonths = calculateMonthsRemaining(input.maturityDate);
     const estimatedPmt = estimatePayment(input.remainingBalance, input.currentRate);
 
-    // ── Step A: Fetch best rate from Pathfinder ───────────────────────
+    // Fetch best rate from Pathfinder
     currentStep = "Pathfinder API (Rates)";
     const pathfinderResult = await fetchPathfinderOffers({
       city: "Toronto",
@@ -60,7 +60,7 @@ export const analyzeFull = async (req: Request, res: Response, next: NextFunctio
 
     const { bestOffer } = pathfinderResult;
 
-    // ── Step B: Fetch penalty from Perch ──────────────────────────────
+    // Fetch penalty from Perch
     currentStep = "Penalty API (Costs)";
     const penaltyResult = await fetchPenaltyCost({
       lender: input.lender,
@@ -75,7 +75,7 @@ export const analyzeFull = async (req: Request, res: Response, next: NextFunctio
       newMortgageRateType: "Fixed",
     });
 
-    // ── Step C: Run the Decision Engine (Hybrid Math) ─────────────────
+    // Run the Decision Engine
     currentStep = "Decision Engine";
     const engineInput: AnalyzeRequest = {
       currentRate: input.currentRate,
@@ -91,7 +91,7 @@ export const analyzeFull = async (req: Request, res: Response, next: NextFunctio
 
     const analysis = analyzeStrategy(engineInput);
 
-    // 3. Full Response with Pathfinder and Penalty data
+    // 3. Analysis combined with Pathfinder and Penalty data
     // const fullResponse: FullAnalyzeResponse = {
     //   ...analysis,
     // pathfinder: {
@@ -118,4 +118,3 @@ export const analyzeFull = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
-

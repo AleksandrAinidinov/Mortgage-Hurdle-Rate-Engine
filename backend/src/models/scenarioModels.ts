@@ -20,14 +20,12 @@ export interface AnalyzeRequest {
   /** Time (months) the user is considering waiting */
   waitMonths: number;
 
-  // ── Optional Perch-Calculated Overrides ──────────────────────────────
+  // Perch-Calculated Overrides for accuracy
   /** Total interest savings over the term (from Perch API) */
   totalInterestSavings?: number;
   /** Net benefit = savings - penalty (from Perch API) */
   netBenefit?: number;
 }
-
-// ── Response ───────────────────────────────────────────────────────────
 
 export interface AnalyzeResponse {
   /** Monthly interest savings if switching today ($) */
@@ -61,10 +59,9 @@ export interface AnalyzeResponse {
   summary: string;
 }
 
-// ── Full (Perch-Integrated) Request ────────────────────────────────────
-
+// Full (Perch-Integrated) Request
 export interface FullAnalyzeRequest {
-  // ── Core Strategic Inputs (7 Fields for Precision) ─────────────────
+  // Core Strategic Inputs (7 Fields)
   currentRate: number;
   remainingBalance: number;
   maturityDate: string; // MM/DD/YYYY
@@ -74,10 +71,9 @@ export interface FullAnalyzeRequest {
   mortgageRateType: "Fixed" | "Variable";
 }
 
-// ── Full (Perch-Integrated) Response ───────────────────────────────────
-
+// Full (Perch-Integrated) Response
 export interface FullAnalyzeResponse extends AnalyzeResponse {
-  /** Source data from Perch Pathfinder */
+  /** Collected data from Perch Pathfinder */
   pathfinder: {
     bestOffer: {
       lender: string;
@@ -87,7 +83,7 @@ export interface FullAnalyzeResponse extends AnalyzeResponse {
     totalOffersFound: number;
   };
 
-  /** Source data from Perch Penalty Calculator */
+  /** Collected data from Perch Penalty Calculator */
   penalty: {
     totalPenalty: number;
     oldInterest: number;

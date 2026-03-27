@@ -1,15 +1,13 @@
 /**
  * Perch Pathfinder Service Adapter
  *
- * Calls Perch's Pathfinder API to fetch the best available mortgage
- * offers for a Switch/Renewal scenario.
+ * Calls Perch's Pathfinder API to fetch the best available mortgage offers for a Switch/Renewal scenarios.
  *
  */
 
+// Ideally should be coming from a .env file
 import { PERCH_PATHFINDER_URL } from "../config/constants";
 import { parseNumeric } from "../utils/parsers";
-
-// ── Types ──────────────────────────────────────────────────────────────
 
 export interface PathfinderRequest {
   city: string;
@@ -37,8 +35,7 @@ export interface PathfinderResult {
   bestOffer: PathfinderOffer;
 }
 
-// ── API Call ────────────────────────────────────────────────────────────
-
+// API Call
 export async function fetchPathfinderOffers(
   input: PathfinderRequest,
 ): Promise<PathfinderResult> {
@@ -81,6 +78,7 @@ export async function fetchPathfinderOffers(
     mtg1CustomLender: null,
   };
 
+  // Fetch data from Perch Pathfinder API
   const res = await fetch(PERCH_PATHFINDER_URL, {
     method: "POST",
     headers: {
@@ -111,7 +109,7 @@ export async function fetchPathfinderOffers(
 
   if (!Array.isArray(hierarchy) || hierarchy.length === 0) {
     throw new Error(
-      "Pathfinder returned no mortgage offers. Check your inputs (city, home value, principal).",
+      "Pathfinder returned no mortgage offers. Check your inputs (city, home value, principal...).",
     );
   }
 
@@ -127,11 +125,11 @@ export async function fetchPathfinderOffers(
       return {
         lender: String(raw["Lender"] ?? "Unknown"),
         netRate: isNaN(rate) ? 0 : rate,
-        termYears: !term || isNaN(term) ? 5 : term, // Default to 5 years if missing
+        termYears: !term || isNaN(term) ? 5 : term, // Standard 5 year period as default
         totalSavings: isNaN(savings) ? 0 : savings,
       };
     })
-    .sort((a, b) => a.netRate - b.netRate);
+    .sort((a, b) => a.netRate - b.netRate); // Sort by rate
 
   const bestOffer = offers[0]!;
 

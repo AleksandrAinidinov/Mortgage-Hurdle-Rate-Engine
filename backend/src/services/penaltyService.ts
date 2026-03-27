@@ -9,8 +9,6 @@
 import { PERCH_PENALTY_URL } from "../config/constants";
 import { parseNumeric, normalizeLender } from "../utils/parsers";
 
-// ── Types ──────────────────────────────────────────────────────────────
-
 export interface PenaltyRequest {
   // Existing mortgage
   lender: string;
@@ -40,8 +38,7 @@ export interface PenaltyResult {
   totalRaw: number;
 }
 
-// ── Frequency Mapping ──────────────────────────────────────────────────
-
+// Frequency Mapping
 const FREQUENCY_MAP: Record<string, string> = {
   Monthly: "Monthly",
   "Bi-Weekly": "Bi-Weekly",
@@ -49,8 +46,7 @@ const FREQUENCY_MAP: Record<string, string> = {
   Weekly: "Weekly",
 };
 
-// ── API Call ────────────────────────────────────────────────────────────
-
+// API Call
 export async function fetchPenaltyCost(
   input: PenaltyRequest,
 ): Promise<PenaltyResult> {
@@ -68,7 +64,7 @@ export async function fetchPenaltyCost(
     }
   }
 
-  // ── 0. Lender Normalization ──────────────────────────────────────────
+  // Lender Normalization
 
   const payload = {
     // Existing mortgage fields (mortgage1)
@@ -81,7 +77,7 @@ export async function fetchPenaltyCost(
     mortgage1PmtFreq: FREQUENCY_MAP[input.paymentFrequency] ?? "Monthly",
     mortgage1Payment: input.mortgagePayment,
 
-    // Dummy second mortgage
+    // Dummy values (mortgage2)
     mortgage2Principal: 0,
     mortgage2Rate: 10,
 

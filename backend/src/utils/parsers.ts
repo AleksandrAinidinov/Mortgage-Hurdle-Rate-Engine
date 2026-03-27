@@ -23,6 +23,7 @@ export function parseNumeric(v: any): number {
   return match ? Number(match[0]) : 0;
 }
 
+// Normalize lender names to match Perch's expected format
 export function normalizeLender(name: string): string {
   const l = name.toLowerCase();
   if (l.includes("td")) return "TD";
@@ -33,4 +34,10 @@ export function normalizeLender(name: string): string {
   if (l.includes("hsbc")) return "HSBC";
   if (l.includes("tangerine")) return "Tangerine";
   return name;
+}
+
+// Round to two decimal places to keep values as Numbers
+export function round(value: number): number {
+  if (isNaN(value) || value === Infinity) return -1;
+  return Math.round(value * 100) / 100;
 }
