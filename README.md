@@ -1,56 +1,29 @@
 # Mortgage Cost of Waiting Engine
 
+A prototype application that helps homeowners decide whether to break their current mortgage now or wait for better rates. Instead of giving generic advice, it calculates exactly how much money they lose every day by waiting.
+
 ## Problem
 Homeowners considering breaking or switching their mortgage are often paralyzed by market volatility. They ask, **"Is it worth waiting for a better rate?"** but have no way to quantify the actual daily cost of that delay. 
 
----
+## What it does
 
-## Solution
-An "Industrial-Grade" decision engine built on top of Perch APIs that shifts the narrative from categorical verdicts to raw financial impact:
-- **Daily Bleed**: Calculates exactly how much money is lost every single day by waiting.
-- **Term-Aware Hurdle Rate**: Computes the exact future rate needed to break even, amortized accurately over the specific term of the new offer.
-- **Precision Penalty Math**: Normalizes lender inputs and integrates directly with Perch's industrial penalty calculator for exact IRD (Interest Rate Differential) costs.
-- **Frictionless UI**: Requires only 7 critical fields (using smart defaults for the rest) paired with a high-impact React dashboard that puts the "Daily Loss" metric front and center.
+It acts as a wrapper around Perch's public APIs to generate a "Time-to-Decision" analysis using just 7 inputs:
+- **Daily Loss**: Shows the exact dollar amount lost per day by delaying a switch.
+- **Break-Even Rate**: Calculates the exact rate the market needs to drop to in order to justify waiting.
+- **Accurate Penalties**: Uses Perch's penalty calculator to get real IRD (Interest Rate Differential) costs instead of relying on basic estimates.
 
----
-
-## Example
-
-**Input (7 Precision Fields):**
-```json
-{ 
-    "currentRate": 5.7,
-    "remainingBalance": 400000,
-    "maturityDate": "03/25/2028",
-    "homeValue": 800000, 
-    "waitMonths": 6,
-    "lender": "TD Canada Trust",
-    "mortgageRateType": "Fixed" 
-}
-```
-
-**Output (Backend API):**
-```json
-{
-    "monthlyInterestSavings": 543.33,
-    "totalCostOfWaiting": 3260,
-    "dailyCostOfWaiting": 18.11,
-    "paybackPeriodMonths": 19.57,
-    "breakEvenRate": 2.93,
-    "netBenefitNow": 1275,
-    "adjustedBenefit": -1985,
-    "offerTermYears": 5,
-    "recommendation": "LOCK_NOW",
-    "summary": "TIME-TO-DECISION ANALYSIS\n\nIf you WAIT:\n• Losing $18.11/day ($543.33/month)\n\nIf you ACT:\n• Break even in 19.57 months\n• Profit after month 20\n\nVERDICT:\nLock now — delay only makes sense if rates drop below 2.93%\n\n⚠️ If you exit or refinance before 19.57 months → you lose money"
-}
-```
-
-## Architecture & Integration
-- **REST API**: `POST /api/v1/strategy/analyze-full`
-- **External Integration (Smarter Wrapper)**:
-  - **Pathfinder API**: Dynamically fetches the best current market rate and term.
-  - **Penalty API**: Spoofs browser headers and normalizes lender names to retrieve exact penalties rather than default estimates.
-
-## Stack
+## Tech Stack
+- **Frontend**: React, TypeScript, Vite
 - **Backend**: Node.js, Express, TypeScript
-- **Frontend**: React, TypeScript, CSS (Perch UI Clone)
+
+## Quick Start
+1. Clone the repository.
+2. Run `npm install` in both the `frontend` and `backend` directories.
+3. Run `npm run dev` in both directories to start the servers.
+4. Open `http://localhost:5173` in your browser.
+
+## API Integration Note
+This prototype hits Perch's Pathfinder and Penalty APIs directly to source live market data. The external endpoints are currently stored in `backend/src/config/constants.ts` for quick demo purposes (in a real production environment, they should be moved to `.env`).
+
+## Problem
+Homeowners considering breaking or switching their mortgage are often paralyzed by market volatility. They ask, **"Is it worth waiting for a better rate?"** but have no way to quantify the actual daily cost of that delay. 
