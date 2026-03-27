@@ -1,7 +1,5 @@
 # Mortgage Cost of Waiting Engine
 
-A prototype application that helps homeowners decide whether to break their current mortgage now or wait for better rates. Instead of giving generic advice, it calculates exactly how much money they lose every day by waiting.
-
 ## Problem
 Homeowners considering breaking or switching their mortgage are often paralyzed by market volatility. They ask, **"Is it worth waiting for a better rate?"** but have no way to quantify the actual daily cost of that delay. 
 
@@ -13,8 +11,8 @@ It acts as a wrapper around Perch's public APIs to generate a "Time-to-Decision"
 - **Accurate Penalties**: Uses Perch's penalty calculator to get real IRD (Interest Rate Differential) costs instead of relying on basic estimates.
 
 ## Tech Stack
-- **Frontend**: React, TypeScript, Vite
 - **Backend**: Node.js, Express, TypeScript
+- **Frontend**: React, TypeScript
 
 ## Quick Start
 1. Clone the repository.
@@ -24,6 +22,3 @@ It acts as a wrapper around Perch's public APIs to generate a "Time-to-Decision"
 
 ## API Integration Note
 This prototype hits Perch's Pathfinder and Penalty APIs directly to source live market data. The external endpoints are currently stored in `backend/src/config/constants.ts` for quick demo purposes (in a real production environment, they should be moved to `.env`).
-
-## Problem
-Homeowners considering breaking or switching their mortgage are often paralyzed by market volatility. They ask, **"Is it worth waiting for a better rate?"** but have no way to quantify the actual daily cost of that delay. 
